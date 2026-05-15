@@ -93,7 +93,14 @@ h1 {
 .stat-dot.partial { background: var(--partial-color); }
 .stat-dot.todo { background: var(--text-muted); }
 
-/* Sync indicator */
+/* Sync indicator + button */
+.sync-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
 #syncStatus {
   font-size: clamp(0.65rem, 1vw, 0.75rem);
   color: var(--text-muted);
@@ -111,6 +118,27 @@ h1 {
 }
 #syncStatus .sync-dot.connected { background: var(--done-color); }
 #syncStatus .sync-dot.disconnected { background: var(--accent); }
+
+.sync-btn {
+  background: none;
+  border: 1px solid var(--card-border);
+  border-radius: 5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: clamp(0.6rem, 0.9vw, 0.7rem);
+  padding: 3px 8px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.sync-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.sync-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 /* ===========================================
    WEEK CARDS
@@ -247,7 +275,13 @@ h1 {
 
 <div class="top-bar">
   <div class="stats-bar" id="statsBar"></div>
-  <div id="syncStatus"><span class="sync-dot" id="syncDot"></span> <span id="syncText">同步中…</span></div>
+  <div class="sync-area">
+    <div id="syncStatus"><span class="sync-dot" id="syncDot"></span> <span id="syncText">同步中…</span></div>
+    <button class="sync-btn" id="syncBtn">从云端同步</button>
+    <button class="sync-btn" id="exportBtn">导出进度</button>
+    <button class="sync-btn" id="importBtn">导入进度</button>
+    <input type="file" id="importFile" accept=".json" style="display:none">
+  </div>
 </div>
 
 <div id="app"></div>
@@ -332,50 +366,61 @@ const STORAGE_KEY = 'syllabus_progress';
 let progress = {};
 let isSelfChange = false;
 let unsubscribe = null;
+let retryTimer = null;
 
-function setSyncStatus(connected) {
+function setSyncStatus(connected, text) {
   const dot = document.getElementById('syncDot');
-  const text = document.getElementById('syncText');
+  const el = document.getElementById('syncText');
   if (connected) {
     dot.className = 'sync-dot connected';
-    text.textContent = '已同步';
+    el.textContent = text || '已同步';
   } else {
     dot.className = 'sync-dot disconnected';
-    text.textContent = '未连接';
+    el.textContent = text || '未连接';
   }
 }
 
-async function loadProgress() {
+/* ---- Firestore read ---- */
+async function pullFromCloud() {
+  setSyncStatus(false, '同步中…');
   try {
     const snap = await getDoc(PROGRESS_REF);
     if (snap.exists()) {
-      progress = snap.data().data || {};
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+      const remote = snap.data().data || {};
+      if (JSON.stringify(progress) !== JSON.stringify(remote)) {
+        progress = remote;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+        render();
+      }
       setSyncStatus(true);
-      return;
+      return true;
+    } else {
+      setSyncStatus(true, '云端无数据，使用本地');
+      return true;
     }
   } catch(e) {
-    console.warn("Firestore read failed, falling back to localStorage", e);
+    console.warn("Firestore pull failed", e);
     setSyncStatus(false);
+    return false;
   }
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    progress = saved ? JSON.parse(saved) : {};
-  } catch(e) { progress = {}; }
 }
 
-async function saveToFirestore() {
+/* ---- Firestore write ---- */
+async function pushToCloud() {
   try {
     isSelfChange = true;
     await setDoc(PROGRESS_REF, { data: progress });
     setSyncStatus(true);
     setTimeout(() => { isSelfChange = false; }, 500);
+    return true;
   } catch(e) {
-    console.warn("Firestore save failed", e);
+    console.warn("Firestore push failed", e);
     setSyncStatus(false);
+    return false;
   }
 }
 
+/* ---- Listen for remote changes ---- */
 function listenRemoteChanges() {
   try {
     unsubscribe = onSnapshot(PROGRESS_REF, (snap) => {
@@ -386,19 +431,66 @@ function listenRemoteChanges() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
         render();
       }
+      setSyncStatus(true);
     });
-    setSyncStatus(true);
   } catch(e) {
     console.warn("Firestore listener failed", e);
     setSyncStatus(false);
   }
 }
 
-function saveProgress() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
-  saveToFirestore();
+/* ---- Periodic retry (every 30s) ---- */
+function startRetryTimer() {
+  if (retryTimer) clearInterval(retryTimer);
+  retryTimer = setInterval(async () => {
+    const prev = JSON.stringify(progress);
+    const ok = await pullFromCloud();
+    if (!ok && document.getElementById('syncDot').className !== 'sync-dot connected') {
+      setSyncStatus(false, '未连接');
+    }
+  }, 30000);
 }
 
+/* ---- Save (local + cloud fire-and-forget) ---- */
+function saveProgress() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+  pushToCloud();
+}
+
+/* ---- Import / Export ---- */
+function exportProgress() {
+  const blob = new Blob([JSON.stringify(progress, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'reading-progress.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importProgress(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (typeof data === 'object' && !Array.isArray(data)) {
+        progress = data;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+        pushToCloud();
+        render();
+        setSyncStatus(true, '导入成功');
+      } else {
+        alert('文件格式错误');
+      }
+    } catch(err) {
+      alert('文件解析失败');
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ===========================================
+   KEY / STATUS HELPERS
+   =========================================== */
 function getKey(wi, bi) { return `${wi}-${bi}`; }
 function getStatus(wi, bi) { return progress[getKey(wi, bi)] || 0; }
 
@@ -489,6 +581,9 @@ function render() {
   renderStats();
 }
 
+/* ===========================================
+   EVENT BINDING
+   =========================================== */
 document.getElementById('resetBtn').addEventListener('click', () => {
   if (confirm('确定重置所有阅读进度吗？')) {
     progress = {};
@@ -497,12 +592,39 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   }
 });
 
+document.getElementById('syncBtn').addEventListener('click', async () => {
+  document.getElementById('syncBtn').disabled = true;
+  await pullFromCloud();
+  document.getElementById('syncBtn').disabled = false;
+});
+
+document.getElementById('exportBtn').addEventListener('click', exportProgress);
+
+document.getElementById('importBtn').addEventListener('click', () => {
+  document.getElementById('importFile').click();
+});
+
+document.getElementById('importFile').addEventListener('change', (e) => {
+  if (e.target.files.length > 0) {
+    importProgress(e.target.files[0]);
+    e.target.value = '';
+  }
+});
+
 /* ===========================================
-   STARTUP: load remote + listen + render
+   STARTUP
    =========================================== */
 async function init() {
-  await loadProgress();
+  const ok = await pullFromCloud();
+  if (!ok) {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      progress = saved ? JSON.parse(saved) : {};
+    } catch(e) { progress = {}; }
+    setSyncStatus(false, '云端离线，使用本地');
+  }
   listenRemoteChanges();
+  startRetryTimer();
   render();
 }
 
