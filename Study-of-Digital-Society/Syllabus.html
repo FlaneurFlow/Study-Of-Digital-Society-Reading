@@ -278,9 +278,7 @@ h1 {
   <div class="sync-area">
     <div id="syncStatus"><span class="sync-dot" id="syncDot"></span> <span id="syncText">同步中…</span></div>
     <button class="sync-btn" id="syncBtn">从云端同步</button>
-    <button class="sync-btn" id="exportBtn">导出进度</button>
-    <button class="sync-btn" id="importBtn">导入进度</button>
-    <input type="file" id="importFile" accept=".json" style="display:none">
+    <button class="sync-btn" id="pushBtn">上传到云端</button>
   </div>
 </div>
 
@@ -457,37 +455,6 @@ function saveProgress() {
   pushToCloud();
 }
 
-/* ---- Import / Export ---- */
-function exportProgress() {
-  const blob = new Blob([JSON.stringify(progress, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'reading-progress.json';
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
-function importProgress(file) {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const data = JSON.parse(e.target.result);
-      if (typeof data === 'object' && !Array.isArray(data)) {
-        progress = data;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
-        pushToCloud();
-        render();
-        setSyncStatus(true, '导入成功');
-      } else {
-        alert('文件格式错误');
-      }
-    } catch(err) {
-      alert('文件解析失败');
-    }
-  };
-  reader.readAsText(file);
-}
-
 /* ===========================================
    KEY / STATUS HELPERS
    =========================================== */
@@ -598,16 +565,12 @@ document.getElementById('syncBtn').addEventListener('click', async () => {
   document.getElementById('syncBtn').disabled = false;
 });
 
-document.getElementById('exportBtn').addEventListener('click', exportProgress);
-
-document.getElementById('importBtn').addEventListener('click', () => {
-  document.getElementById('importFile').click();
-});
-
-document.getElementById('importFile').addEventListener('change', (e) => {
-  if (e.target.files.length > 0) {
-    importProgress(e.target.files[0]);
-    e.target.value = '';
+document.getElementById('pushBtn').addEventListener('click', async () => {
+  document.getElementById('pushBtn').disabled = true;
+  const ok = await pushToCloud();
+  document.getElementById('pushBtn').disabled = false;
+  if (ok) {
+    setSyncStatus(true, '已上传');
   }
 });
 
