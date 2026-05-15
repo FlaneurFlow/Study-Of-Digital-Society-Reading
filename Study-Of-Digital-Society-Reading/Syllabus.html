@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数字社会研究文献阅读 · Weekly Reading List</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===========================================
+   CSS CUSTOM PROPERTIES (THEME)
+   Change these to alter the whole look
+   =========================================== */
+:root {
+  --bg: #f7f5f0;
+  --card-bg: #ffffff;
+  --card-border: #eae6df;
+  --text-primary: #2d2a24;
+  --text-secondary: #7a7368;
+  --text-muted: #c2bab0;
+  --accent: #b83b2c;
+  --accent-soft: #f0e6e4;
+  --done-color: #3a7d44;
+  --partial-color: #b8860b;
+  --font-display: 'Noto Serif SC', serif;
+  --font-body: 'Noto Serif SC', serif;
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(45,42,36,0.06);
+  --shadow-hover: 0 4px 20px rgba(45,42,36,0.1);
+  --transition: 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ===========================================
+   BASE STYLES
+   =========================================== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text-primary);
+  padding: clamp(16px, 4vw, 40px);
+  min-height: 100vh;
+  background-image:
+    radial-gradient(ellipse at 20% 10%, rgba(184,59,44,0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 90%, rgba(184,59,44,0.02) 0%, transparent 50%);
+}
+
+/* ===========================================
+   HEADER
+   =========================================== */
+h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  text-align: center;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  margin-bottom: clamp(16px, 3vw, 32px);
+  line-height: 1.2;
+}
+
+/* ===========================================
+   STATS BAR
+   =========================================== */
+.stats-bar {
+  display: flex;
+  justify-content: center;
+  gap: clamp(12px, 2.5vw, 24px);
+  margin-bottom: clamp(16px, 3vw, 28px);
+  flex-wrap: wrap;
+}
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: clamp(0.75rem, 1.2vw, 0.85rem);
+  color: var(--text-secondary);
+}
+.stat-item .num {
+  font-weight: 600;
+  font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+  font-variant-numeric: tabular-nums;
+}
+.stat-dot {
+  width: 12px; height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+.stat-dot.done { background: var(--done-color); }
+.stat-dot.partial { background: var(--partial-color); }
+.stat-dot.todo { background: var(--text-muted); }
+
+/* ===========================================
+   WEEK CARDS
+   =========================================== */
+.week {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  margin-bottom: 10px;
+  box-shadow: var(--shadow);
+  transition: box-shadow var(--transition);
+  overflow: hidden;
+}
+.week:hover { box-shadow: var(--shadow-hover); }
+
+/* Header (clickable) */
+.week-header {
+  display: flex;
+  align-items: center;
+  padding: clamp(12px, 2vw, 16px) clamp(14px, 2.5vw, 20px);
+  gap: 10px;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.week-label {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(0.85rem, 1.6vw, 1rem);
+  color: var(--text-primary);
+  flex: 1;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+.week-label .sub {
+  font-family: var(--font-body);
+  font-weight: 400;
+  color: var(--text-secondary);
+  font-size: clamp(0.7rem, 1.1vw, 0.8rem);
+  margin-left: 6px;
+}
+
+
+
+/* ===========================================
+   BOOK LIST (always visible)
+   =========================================== */
+.book-list {
+  padding: clamp(4px, 0.8vw, 8px) clamp(14px, 2.5vw, 20px) clamp(12px, 2vw, 16px);
+}
+
+.book-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: clamp(8px, 1.2vw, 10px) 0;
+  border-top: 1px solid var(--card-border);
+}
+.book-item:first-child { border-top: none; }
+
+.book-title {
+  flex: 1;
+  font-size: clamp(0.78rem, 1.2vw, 0.88rem);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* ===========================================
+   SINGLE THREE-STATE BUTTON
+   =========================================== */
+.status-btn {
+  width: 34px;
+  height: 34px;
+  border: 2px solid var(--card-border);
+  border-radius: 7px;
+  background: var(--card-bg);
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  line-height: 1;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+.status-btn:hover {
+  border-color: var(--text-muted);
+  transform: scale(1.05);
+}
+.status-btn:active {
+  transform: scale(0.92);
+}
+.status-btn.state-1 {
+  background: var(--done-color);
+  border-color: var(--done-color);
+  color: #fff;
+}
+.status-btn.state-2 {
+  background: var(--partial-color);
+  border-color: var(--partial-color);
+  color: #fff;
+}
+
+/* ===========================================
+   NO BOOKS PLACEHOLDER
+   =========================================== */
+.no-books {
+  padding: 6px 0;
+  color: var(--text-muted);
+  font-size: clamp(0.72rem, 1.1vw, 0.8rem);
+}
+
+/* ===========================================
+   RESET BUTTON
+   =========================================== */
+.reset-btn {
+  display: block;
+  margin: 24px auto 0;
+  padding: 8px 22px;
+  background: none;
+  border: 1px solid var(--card-border);
+  border-radius: 7px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: clamp(0.72rem, 1.1vw, 0.8rem);
+  transition: all 0.2s;
+}
+.reset-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ===========================================
+   RESPONSIVE
+   =========================================== */
+@media (max-width: 480px) {
+  .stats-bar { gap: 12px; }
+  .status-btn { width: 30px; height: 30px; font-size: 0.9rem; }
+}
+</style>
+</head>
+<body>
+
+<h1>数字社会研究文献阅读 · Weekly Reading List</h1>
+
+<div class="stats-bar" id="statsBar"></div>
+
+<div id="app"></div>
+
+<button class="reset-btn" id="resetBtn">重置所有进度</button>
+
+<script>
+/* ===========================================
+   COURSE DATA
+   =========================================== */
+const data = [
+  { label: "春一", date: "2026-03-02", day: "星期一", topic: "导论", books: [] },
+  { label: "春二", date: "2026-03-09", day: "星期一", topic: "人工智能前史（上）", books: [
+      "爱德华多·科恩. 2023. 森林如何思考. 上海文艺出版社.",
+      "阿德里安娜·梅厄. 2024. 神工智能. 九州出版社."
+  ]},
+  { label: "春三", date: "2026-03-16", day: "星期一", topic: "人工智能前史（下）", books: [
+      "张信. 2025. 磨合. 中华书局.",
+      "西山崇. 2024. 工程师的世纪. 中国科学技术出版社."
+  ]},
+  { label: "春四", date: "2026-03-23", day: "星期一", topic: "全球信息资本主义（上）", books: [
+      "威利·莱顿维塔. 2024. 云端帝国. 中译出版社.",
+      "理查德·鲍德温. 2020. 大合流. 格致出版社."
+  ]},
+  { label: "春五", date: "2026-03-30", day: "星期一", topic: "全球信息资本主义（下）", books: [
+      "蓝江. 2024. 如何思考全球数字资本主义？. 上海人民出版社.",
+      "詹姆斯·斯坦霍夫. 2025. 自主性批判. 商务印书馆."
+  ]},
+  { label: "春七", date: "2026.04.13", day: "星期一", topic: "贴近算法与远离算法", books: [
+      "保罗·杜里什. 2025. 比特之物. 复旦大学出版社.",
+      "马修·拉法洛. 2025. 数字鸿沟. 中国人民大学出版社."
+  ]},
+  { label: "春八", date: "2026-04-20", day: "星期一", topic: "Daniel Miller Talk", books: [] },
+  { label: "夏三", date: "2026-05-15", day: "星期五", topic: "如何深描技术物", books: [
+      "戴维·J.贡克尔. 2023. 机器问题. 北京大学出版社.",
+      "徐秋石. 2025. 技术之耳. 中信出版社.",
+      "墨磊宁. 2026. 中文计算机. 广西师范大学出版社."
+  ]},
+  { label: "夏五 周一", date: "2026-05-25", day: "星期一", topic: "机器文论（上）", books: [
+      "W. J. T. 米歇尔 & 马克·B. N. 汉森. 2019. 媒介研究批评术语集. 当代学术棱镜译丛. 南京大学出版社.",
+      "N·凯瑟琳·海尔斯. 2025. 我的母亲是计算机. 南京大学出版社."
+  ]},
+  { label: "夏五 周五", date: "2026-05-29", day: "星期五", topic: "机器文论（下）", books: [
+      "刘禾. 2025. 弗洛伊德机器人：数字时代的哲学批判. 中国大百科全书出版社.",
+      "南娜·邦德·蒂尔斯特鲁普等. 2023. 不确定的档案：数字批判关键词. 中国美术学院出版社."
+  ]},
+  { label: "夏六", date: "2026-06-05", day: "星期五", topic: "组织与技术", books: [
+      "唐纳德·麦肯齐. 2025. 光速交易. 上海财经大学出版社.",
+      "邱泽奇, ed. 2018. 技术与组织：学科脉络与文献. 中国人民大学出版社."
+  ]},
+  { label: "夏七", date: "2026-06-12", day: "星期五", topic: "数字文化", books: [
+      "J.A.英格利希-鲁埃克. 2025. 硅谷文化. 华东师范大学出版社.",
+      "多米尼克·卡尔东. 2025. 数字文化. 中国人民大学出版社.",
+      "菲利克斯·斯塔尔德. 2023. 数字状况. 边界计划. 中国美术学院出版社."
+  ]}
+];
+
+/* ===========================================
+   STATE MANAGEMENT
+   =========================================== */
+const STORAGE_KEY = 'syllabus_progress';
+
+let progress = (() => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : {};
+  } catch(e) { return {}; }
+})();
+
+function saveProgress() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+}
+
+function getKey(wi, bi) { return `${wi}-${bi}`; }
+function getStatus(wi, bi) { return progress[getKey(wi, bi)] || 0; }
+
+function setStatus(wi, bi, st) {
+  const key = getKey(wi, bi);
+  if (st === 0) delete progress[key];
+  else progress[key] = st;
+  saveProgress();
+}
+
+const CYCLE = [
+  { icon: '○', label: '未读', cls: '' },
+  { icon: '✓', label: '已读', cls: 'state-1' },
+  { icon: '★', label: '部分阅读', cls: 'state-2' }
+];
+function next(st) { return (st + 1) % 3; }
+
+/* ===========================================
+   RENDER
+   =========================================== */
+function renderStats() {
+  let total = 0, done = 0, partial = 0;
+  data.forEach((w, wi) => w.books.forEach((_, bi) => {
+    total++;
+    const s = getStatus(wi, bi);
+    if (s === 1) done++;
+    else if (s === 2) partial++;
+  }));
+  const todo = total - done - partial;
+  document.getElementById('statsBar').innerHTML =
+    `<div class="stat-item"><span class="stat-dot done"></span> 已读 <span class="num">${done}</span></div>` +
+    `<div class="stat-item"><span class="stat-dot partial"></span> 部分 <span class="num">${partial}</span></div>` +
+    `<div class="stat-item"><span class="stat-dot todo"></span> 未读 <span class="num">${todo}</span></div>` +
+    `<div class="stat-item" style="color:var(--text-muted)">︱ 总计 <span class="num">${total}</span></div>`;
+}
+
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+  data.forEach((week, wi) => {
+    const weekEl = document.createElement('div');
+    weekEl.className = 'week';
+
+    // --- header ---
+    const header = document.createElement('div');
+    header.className = 'week-header';
+    header.innerHTML =
+      `<span class="week-label">${week.label} ${week.topic} <span class="sub">${week.date} ${week.day}</span></span>`;
+    weekEl.appendChild(header);
+
+    // --- book list ---
+    const list = document.createElement('div');
+    list.className = 'book-list';
+
+    if (week.books.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'no-books';
+      empty.textContent = '（本周无阅读书目）';
+      list.appendChild(empty);
+    } else {
+      week.books.forEach((book, bi) => {
+        const item = document.createElement('div');
+        item.className = 'book-item';
+
+        const title = document.createElement('span');
+        title.className = 'book-title';
+        title.textContent = book;
+        item.appendChild(title);
+
+        const st = getStatus(wi, bi);
+        const cfg = CYCLE[st];
+        const btn = document.createElement('button');
+        btn.className = 'status-btn' + (cfg.cls ? ' ' + cfg.cls : '');
+        btn.textContent = st === 0 ? '' : cfg.icon;
+        btn.title = cfg.label;
+        btn.addEventListener('click', () => {
+          const cur = getStatus(wi, bi);
+          setStatus(wi, bi, next(cur));
+          render();
+        });
+
+        item.appendChild(btn);
+        list.appendChild(item);
+      });
+    }
+
+    weekEl.appendChild(list);
+    app.appendChild(weekEl);
+  });
+  renderStats();
+}
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (confirm('确定重置所有阅读进度吗？')) {
+    progress = {};
+    saveProgress();
+    render();
+  }
+});
+
+render();
+</script>
+</body>
+</html>
